@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Core.Abstractions/Core.Abstractions.csproj" />
+    <Project Path="src/Core.Application/Core.Application.csproj" />
+    <Project Path="src/Drivers.Generic/Drivers.Generic.csproj" />
+    <Project Path="src/Drivers.McHose/Drivers.McHose.csproj" />
+    <Project Path="src/Drivers.Vgn/Drivers.Vgn.csproj" />
+    <Project Path="src/Host.Wpf/Host.Wpf.csproj" />
+    <Project Path="src/Tools.HidProbe/Tools.HidProbe.csproj" />
+    <Project Path="src/Transports.Hid/Transports.Hid.csproj" />
+  </Folder>
+</Solution>

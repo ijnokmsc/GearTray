@@ -1,0 +1,131 @@
+<Window x:Class="GearTray.Host.Panel.PanelWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="2.4G 设备电量"
+        Width="450"
+        Height="820"
+        MinWidth="360"
+        MinHeight="380"
+        WindowStartupLocation="CenterScreen">
+    <!-- M1/M4 占位界面：不接皮肤系统（M1.5），只做功能可见性验证。
+         内容多了以后整块可滚动，避免窗口被设置项撑爆。 -->
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="设备电量" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock x:Name="SummaryText"
+                       Margin="12,4,0,0"
+                       FontSize="12"
+                       Foreground="Gray"
+                       VerticalAlignment="Center" />
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <ItemsControl x:Name="DeviceList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderThickness="0,0,0,1" Padding="0,8">
+                                <Border.BorderBrush>
+                                    <SolidColorBrush Color="#22000000" />
+                                </Border.BorderBrush>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,12,0">
+                                        <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold" />
+                                        <!-- 必须裁剪：详情行比列宽长，不裁会直接压到右边的电量数字上。 -->
+                                        <TextBlock Text="{Binding Detail}"
+                                                   FontSize="11"
+                                                   Foreground="Gray"
+                                                   Margin="0,3,0,0"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding BatteryText}"
+                                               FontSize="26"
+                                               VerticalAlignment="Center"
+                                               Margin="12,0,0,0" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border x:Name="DpiRow"
+                        BorderThickness="0,1,0,0"
+                        BorderBrush="#22000000"
+                        Padding="0,12,0,0"
+                        Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock x:Name="DpiTitle"
+                                   Text="DPI 档位"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="#666" />
+                        <WrapPanel x:Name="DpiPanel" Margin="0,6,0,0" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Win 锁是键盘固件的一个字段，放进同一个「键盘设置」块里，
+                     不单独占一段，否则同一台键盘被切成两块。 -->
+                <Border x:Name="SettingsRow"
+                        BorderThickness="0,1,0,0"
+                        BorderBrush="#22000000"
+                        Padding="0,12,0,8"
+                        Margin="0,8,0,8">
+                    <StackPanel>
+                        <DockPanel>
+                            <TextBlock x:Name="SettingsTitle"
+                                       DockPanel.Dock="Left"
+                                       Text="键盘设置"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Foreground="#666" />
+                            <TextBlock x:Name="SettingsStatus"
+                                       HorizontalAlignment="Right"
+                                       FontSize="11"
+                                       Foreground="Gray"
+                                       Text="写入固件"
+                                       TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+
+                        <Border x:Name="WinLockRow"
+                                Padding="0,6,0,0"
+                                Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Win 键锁"
+                                           Width="120"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"
+                                           ToolTip="键盘固件位，锁定后 Win 键由键盘自己屏蔽" />
+                                <CheckBox x:Name="WinLockCheck"
+                                          VerticalAlignment="Center"
+                                          Click="OnWinLockClick" />
+                                <TextBlock x:Name="WinLockHint"
+                                           Margin="8,0,0,0"
+                                           FontSize="11"
+                                           Foreground="Gray"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+
+                        <StackPanel x:Name="SettingsPanel" Margin="0,4,0,0" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="立即刷新" Click="OnRefreshClick" Padding="14,5" Margin="0,0,8,0" />
+            <Button Content="退出" Click="OnExitClick" Padding="14,5" />
+        </StackPanel>
+    </Grid>
+</Window>

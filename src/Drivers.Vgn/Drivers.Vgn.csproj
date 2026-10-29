@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyName>GearTray.Drivers.Vgn</AssemblyName>
+    <RootNamespace>GearTray.Drivers.Vgn</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core.Abstractions\Core.Abstractions.csproj" />
+    <ProjectReference Include="..\Transports.Hid\Transports.Hid.csproj" />
+  </ItemGroup>
+
+</Project>

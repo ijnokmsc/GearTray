@@ -1,0 +1,13 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+.tmp/
+
+# 逆向中间产物：从厂商 app.asar 里导出的 JS 体积大且含版权代码，不入库
+tools/asarx/_vhub/
+
+# 本地工作日志（WorkBuddy 项目数据），不进仓库
+.workbuddy/
