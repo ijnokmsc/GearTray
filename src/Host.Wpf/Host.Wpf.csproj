@@ -9,8 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- 磁盘皮肤随包输出，放 exe 旁边的 skins/<id>/skin.json。离线加载，不联网。 -->
+    <None Update="skins\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Core.Abstractions\Core.Abstractions.csproj" />
     <ProjectReference Include="..\Core.Application\Core.Application.csproj" />
+    <ProjectReference Include="..\Core.Theming\Core.Theming.csproj" />
     <ProjectReference Include="..\Transports.Hid\Transports.Hid.csproj" />
     <!-- 宿主是组装根：只有这里可以认识具体驱动，驱动本身互不引用。 -->
     <ProjectReference Include="..\Drivers.Generic\Drivers.Generic.csproj" />

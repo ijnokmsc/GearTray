@@ -5,7 +5,12 @@ Windows 托盘工具：一眼看完所有 2.4G 无线外设的电量，并直接
 不用装厂商那一整套控制中心（MCHOSE HUB / VGN VHUB 各几百兆、常驻后台），
 也不用把设备连到网页驱动上。开机常驻托盘，点一下就看。
 
-![面板](docs/ui/2026-10-29-panel.png)
+皮肤只是 Token：内置浅色 / 深色，也支持 `skins/<id>/skin.json` 离线扩展（示例 `skins/nord`）。
+切换时只替换资源字典，控件树一个都不动，所以不会闪、不会丢焦点。
+
+| 浅色（内置） | 深色（内置） | Nord 夜蓝（磁盘 skin.json） |
+|---|---|---|
+| ![](docs/ui/2026-10-29-panel-light.png) | ![](docs/ui/2026-10-29-panel-dark.png) | ![](docs/ui/2026-10-29-panel-nord.png) |
 
 ## 能力
 
@@ -93,8 +98,9 @@ hidprobe --pid 5088 --vgn-ws-set light.brightness=3   # 写一项 + 回读 + 打
 
 ## 路线图
 
+- [x] 皮肤系统 S0：语义 Token + 内置浅色/深色 + `skins/` 离线加载（热切换不重建控件）
+- [ ] 皮肤系统 S1：`CardList` / `Showcase` / `Console` / `Sidebar` 四套布局模板
 - [ ] 描述符引擎：用 JSON 描述设备，不必为每台设备写一个 C# 驱动
-- [ ] 皮肤系统：Token / 内置布局 / 皮肤插件三层
 - [ ] 插件宿主：`plugins/` 目录离线加载
 - [ ] VGN 改键（ReadKey / ChangeKeys / Fn 层）
 

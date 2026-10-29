@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using GearTray.Core;
+using GearTray.Theming;
 
 namespace GearTray.Host.Panel;
 
@@ -29,6 +30,10 @@ public partial class PanelWindow : Window
     private readonly Func<DeviceIdentity, int, Task<bool>> _onSetStage;
     private readonly Func<DeviceIdentity, bool, Task<bool>> _onSetWinLock;
     private readonly Func<DeviceIdentity, string, int, Task<bool>> _onSetSetting;
+    private readonly Action<Skin> _onSkinChanged;
+
+    /// <summary>填充皮肤下拉时会触发 SelectionChanged，必须压住，否则一开面板就白切一次皮肤。</summary>
+    private bool _fillingSkins;
 
     private DeviceIdentity? _dpiTarget;
     private DeviceIdentity? _lockTarget;
@@ -57,13 +62,58 @@ public partial class PanelWindow : Window
         Action onRefresh,
         Func<DeviceIdentity, int, Task<bool>> onSetStage,
         Func<DeviceIdentity, bool, Task<bool>> onSetWinLock,
-        Func<DeviceIdentity, string, int, Task<bool>> onSetSetting)
+        Func<DeviceIdentity, string, int, Task<bool>> onSetSetting,
+        Action<Skin> onSkinChanged,
+        IReadOnlyList<Skin> skins,
+        Skin activeSkin)
     {
         InitializeComponent();
         _onRefresh = onRefresh;
         _onSetStage = onSetStage;
         _onSetWinLock = onSetWinLock;
         _onSetSetting = onSetSetting;
+        _onSkinChanged = onSkinChanged;
+
+        _fillingSkins = true;
+        try
+        {
+            SkinPicker.ItemsSource = skins;
+            SkinPicker.ItemTemplate = (DataTemplate)FindResource("SkinNameTemplate");
+            SkinPicker.SelectedValuePath = nameof(Skin.Id);
+            SkinPicker.SelectedValue = activeSkin.Id;
+        }
+        finally
+        {
+            _fillingSkins = false;
+        }
+    }
+
+    private void OnSkinChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_fillingSkins || SkinPicker.SelectedItem is not Skin skin)
+        {
+            return;
+        }
+
+        // 只换 Token：控件树一个都不动，DynamicResource 自己重新求值。
+        _onSkinChanged(skin);
+    }
+
+    /// <summary>
+    /// 从外部（启动参数 / 将来的托盘菜单）换肤时，把下拉框的选中项同步过来。
+    /// 不这样做的话界面会显示「浅色」而实际用着深色皮肤。
+    /// </summary>
+    public void SelectSkin(Skin skin)
+    {
+        _fillingSkins = true;
+        try
+        {
+            SkinPicker.SelectedValue = skin.Id;
+        }
+        finally
+        {
+            _fillingSkins = false;
+        }
     }
 
     public void Apply(IReadOnlyList<DeviceSnapshot> snapshots)
@@ -199,6 +249,7 @@ public partial class PanelWindow : Window
                 var button = new Button
                 {
                     Content = dpi.Stages[i].ToString(),
+                    Style = (Style)FindResource("SkinButton"),
                     Padding = new Thickness(12, 4, 12, 4),
                     Margin = new Thickness(0, 0, 6, 6),
                     Tag = index,
@@ -235,13 +286,14 @@ public partial class PanelWindow : Window
 
             if (active)
             {
-                button.Background = new SolidColorBrush(Color.FromRgb(0x2D, 0x7D, 0xD2));
-                button.Foreground = Brushes.White;
+                // 局部值压过 Style setter，所以激活态用 Accent，取消激活时清掉局部值即可回落到 Style。
+                button.SetResourceReference(Control.BackgroundProperty, "Skin.Brush.Accent");
+                button.SetResourceReference(Control.ForegroundProperty, "Skin.Brush.AccentForeground");
             }
             else
             {
-                button.ClearValue(Button.BackgroundProperty);
-                button.ClearValue(Button.ForegroundProperty);
+                button.ClearValue(Control.BackgroundProperty);
+                button.ClearValue(Control.ForegroundProperty);
             }
         }
     }
@@ -333,13 +385,14 @@ public partial class PanelWindow : Window
 
             foreach (var group in settings.GroupBy(s => s.Group))
             {
-                SettingsPanel.Children.Add(new TextBlock
+                var heading = new TextBlock
                 {
                     Text = group.Key,
-                    FontSize = 11,
-                    Foreground = Brushes.Gray,
                     Margin = new Thickness(0, 8, 0, 2),
-                });
+                };
+                heading.SetResourceReference(TextBlock.FontSizeProperty, "Skin.FontSize.Caption");
+                heading.SetResourceReference(TextBlock.ForegroundProperty, "Skin.Brush.TextTertiary");
+                SettingsPanel.Children.Add(heading);
 
                 foreach (var setting in group)
                 {
@@ -408,20 +461,21 @@ public partial class PanelWindow : Window
         var label = new TextBlock
         {
             Text = setting.Label,
-            FontSize = 12,
             VerticalAlignment = VerticalAlignment.Center,
             ToolTip = setting.Hint,
         };
+        label.SetResourceReference(TextBlock.FontSizeProperty, "Skin.FontSize.Base");
+        label.SetResourceReference(TextBlock.ForegroundProperty, "Skin.Brush.TextPrimary");
         grid.Children.Add(label);
 
         var value = new TextBlock
         {
             Text = setting.DisplayValue,
-            FontSize = 11,
-            Foreground = Brushes.Gray,
             Margin = new Thickness(8, 0, 0, 0),
             VerticalAlignment = VerticalAlignment.Center,
         };
+        value.SetResourceReference(TextBlock.FontSizeProperty, "Skin.FontSize.Caption");
+        value.SetResourceReference(TextBlock.ForegroundProperty, "Skin.Brush.TextSecondary");
         Grid.SetColumn(value, 2);
         grid.Children.Add(value);
 
@@ -484,8 +538,9 @@ public partial class PanelWindow : Window
     {
         var combo = new ComboBox
         {
+            Style = (Style)FindResource("SkinCombo"),
             ItemsSource = setting.Options,
-            DisplayMemberPath = nameof(DeviceSettingOption.Label),
+            ItemTemplate = (DataTemplate)FindResource("OptionLabelTemplate"),
             SelectedValuePath = nameof(DeviceSettingOption.Value),
             SelectedValue = setting.Value,
             Width = EditorWidth,
@@ -526,9 +581,17 @@ public partial class PanelWindow : Window
 
         var swatches = new List<(int Rgb, Button Button)>();
 
+        // 色块的填充色是**设备数据**（不是皮肤），只有描边走 Token。
+        static void ApplySwatchState(Button swatch, bool selected)
+        {
+            swatch.BorderThickness = new Thickness(selected ? 2 : 1);
+            swatch.SetResourceReference(
+                Control.BorderBrushProperty,
+                selected ? "Skin.Brush.TextPrimary" : "Skin.Brush.ControlBorder");
+        }
+
         foreach (var (name, rgb) in ColorPresets)
         {
-            var selected = rgb == setting.Value;
             var swatch = new Button
             {
                 Width = 16,
@@ -538,10 +601,10 @@ public partial class PanelWindow : Window
                     (byte)((rgb >> 16) & 0xFF),
                     (byte)((rgb >> 8) & 0xFF),
                     (byte)(rgb & 0xFF))),
-                BorderThickness = new Thickness(selected ? 2 : 1),
-                BorderBrush = selected ? Brushes.Black : Brushes.LightGray,
                 ToolTip = name,
             };
+
+            ApplySwatchState(swatch, rgb == setting.Value);
 
             var value = rgb;
             swatch.Click += async (_, _) => await CommitSettingAsync(setting.Key, value);
@@ -553,9 +616,7 @@ public partial class PanelWindow : Window
         {
             foreach (var (rgb, button) in swatches)
             {
-                var selected = rgb == current.Value;
-                button.BorderThickness = new Thickness(selected ? 2 : 1);
-                button.BorderBrush = selected ? Brushes.Black : Brushes.LightGray;
+                ApplySwatchState(button, rgb == current.Value);
             }
         }
 

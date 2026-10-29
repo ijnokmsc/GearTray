@@ -1,0 +1,30 @@
+{
+  "id": "nord",
+  "name": "Nord 夜蓝",
+  "isDark": true,
+  "layout": "CardList",
+  "tokens": {
+    "windowBackground": "#2E3440",
+    "surface": "#3B4252",
+    "surfaceAlt": "#434C5E",
+    "textPrimary": "#ECEFF4",
+    "textSecondary": "#B8C0D0",
+    "textTertiary": "#8A93A5",
+    "border": "#4C566A",
+    "accent": "#88C0D0",
+    "accentForeground": "#2E3440",
+    "controlBackground": "#3B4252",
+    "controlBorder": "#4C566A",
+    "danger": "#BF616A",
+    "warning": "#EBCB8B",
+    "success": "#A3BE8C",
+    "radius": 8,
+    "spacing": 10,
+    "fontFamily": "Microsoft YaHei UI, Segoe UI",
+    "fontSizeCaption": 11,
+    "fontSizeBase": 12,
+    "fontSizeTitle": 14,
+    "fontSizeHeading": 18,
+    "fontSizeDisplay": 26
+  }
+}

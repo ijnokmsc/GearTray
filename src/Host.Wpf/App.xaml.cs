@@ -10,7 +10,9 @@ using GearTray.Drivers.McHose;
 using GearTray.Drivers.Vgn;
 using GearTray.Host.Input;
 using GearTray.Host.Panel;
+using GearTray.Host.Skinning;
 using GearTray.Host.Tray;
+using GearTray.Theming;
 
 namespace GearTray.Host;
 
@@ -23,6 +25,7 @@ public partial class App : Application
     private PanelWindow? _panel;
     private DeviceRegistry? _registry;
     private PollScheduler? _scheduler;
+    private SkinRegistry? _skins;
 
     /// <summary>最新一份快照 + 「已排队」标志，用来把密集的刷新合并成一次重绘。</summary>
     private IReadOnlyList<DeviceSnapshot>? _pendingSnapshots;
@@ -85,6 +88,15 @@ public partial class App : Application
 
         _registry.SnapshotsChanged += OnSnapshotsChanged;
 
+        // 皮肤必须在建窗口之前套上：DynamicResource 要能一次性求值到正确的 Token。
+        _skins = SkinRegistry.Load(Path.Combine(AppContext.BaseDirectory, "skins"));
+        SkinApplier.Apply(_skins.Get(GetArg(e.Args, "--skin")));
+
+        foreach (var error in _skins.Errors)
+        {
+            Console.Error.WriteLine($"skin: {error}");
+        }
+
         _tray = new TrayHost();
         _tray.ShowPanelRequested += ShowPanel;
         _tray.RefreshRequested += OnRefreshRequested;
@@ -101,6 +113,23 @@ public partial class App : Application
         if (e.Args.Contains("--panel", StringComparer.OrdinalIgnoreCase))
         {
             ShowPanel();
+        }
+
+        // 开发期入口：面板起来后延时换肤，用来验证「只换 Token、不重建控件」。
+        // 截图里如果颜色变了而控件结构没变（滚动位置、焦点都在），就说明热切换成立。
+        var swapSkinId = GetArg(e.Args, "--swap-skin");
+        if (swapSkinId is not null)
+        {
+            var swapTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            swapTimer.Tick += (_, _) =>
+            {
+                swapTimer.Stop();
+                if (_skins is not null)
+                {
+                    ApplySkin(_skins.Get(swapSkinId));
+                }
+            };
+            swapTimer.Start();
         }
 
         // 开发期入口：开面板 → 等首轮数据到位 → 自渲染 PNG → 退出。
@@ -130,6 +159,12 @@ public partial class App : Application
         new VgnKeyboardDriver(),
         new GenericHidDriver(),
     ];
+
+    private static string? GetArg(string[] args, string name)
+    {
+        var index = Array.IndexOf(args, name);
+        return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
+    }
 
     private static async Task RunSnapshot()
     {
@@ -243,7 +278,14 @@ public partial class App : Application
     {
         if (_panel is null)
         {
-            _panel = new PanelWindow(RefreshFromPanel, SetDpiStageAsync, SetWinKeyLockAsync, SetSettingAsync);
+            _panel = new PanelWindow(
+                RefreshFromPanel,
+                SetDpiStageAsync,
+                SetWinKeyLockAsync,
+                SetSettingAsync,
+                ApplySkin,
+                _skins?.All ?? [SkinRegistry.Light],
+                SkinApplier.Current);
             _panel.Closed += (_, _) => _panel = null;
         }
 
@@ -313,6 +355,16 @@ public partial class App : Application
         }
 
         return await registry.SetSettingAsync(identity, key, value, CancellationToken.None).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// 换肤只替换资源字典：控件里的 DynamicResource 自己重新求值，
+    /// 不重建控件树，所以不会打断正在进行的交互，也不会碰那条会崩的重建路径。
+    /// </summary>
+    private void ApplySkin(Skin skin)
+    {
+        SkinApplier.Apply(skin);
+        _panel?.SelectSkin(skin);
     }
 
     private void RefreshFromPanel()    {
